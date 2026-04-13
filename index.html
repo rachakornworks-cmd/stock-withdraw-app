@@ -23,11 +23,14 @@ button {
 
 .stock { font-size:12px; color:#94a3b8; }
 
+/* Loading */
 #loading {
   display:none; position:fixed; top:0; left:0;
   width:100%; height:100%;
-  background:rgba(0,0,0,0.8);
+  background:rgba(0,0,0,0.85);
   justify-content:center; align-items:center;
+  flex-direction:column;
+  z-index:9999;
 }
 
 .spinner {
@@ -55,26 +58,44 @@ button {
 <button class="save" onclick="submitData()">บันทึก</button>
 </div>
 
+<!-- Loading -->
 <div id="loading">
-  <div>
-    <div class="spinner"></div>
-    <p>กำลังบันทึก...</p>
-  </div>
+  <div class="spinner"></div>
+  <p id="loadingText">กำลังโหลด...</p>
 </div>
 
 <script>
 let items = [];
 let products = [];
 
-const scriptURL = "https://script.google.com/macros/s/AKfycbyairo4en2OS2mN_dxDWt3T52fW6Xqv3zUNfX1xzJVqDhJU-aSZG63nDx44Hi3F0Cuc2A/exec";
+const scriptURL = "https://script.google.com/macros/s/AKfycbyD4O6PIABCkg5QqqFK9UBfIZcmS-ti3eviZzPF8KPWpbmY27KV-qz4aPDdUDh0LXrH8g/exec";
+
+/* ===== Loading Control ===== */
+function showLoading(text){
+  document.getElementById("loadingText").innerText = text;
+  document.getElementById("loading").style.display = "flex";
+}
+
+function hideLoading(){
+  document.getElementById("loading").style.display = "none";
+}
+
+/* ===== โหลดข้อมูล ===== */
+showLoading("🔄 กำลังดึงข้อมูล...");
 
 fetch(scriptURL)
 .then(res => res.json())
 .then(data => {
   products = data;
   addItem();
+  hideLoading();
+})
+.catch(() => {
+  hideLoading();
+  alert("โหลดข้อมูลไม่สำเร็จ");
 });
 
+/* ===== เพิ่มรายการ ===== */
 function addItem(){
   const id = Date.now();
 
@@ -109,12 +130,14 @@ function addItem(){
   updateStock(id);
 }
 
+/* ===== แสดง stock ===== */
 function updateStock(id){
   const s = document.getElementById(`product${id}`);
   const stock = s.options[s.selectedIndex].dataset.stock;
   document.getElementById(`stock_${id}`).innerText = "คงเหลือ: " + stock;
 }
 
+/* ===== สร้าง user ===== */
 function genUsers(id){
   const qty = Number(document.getElementById(`qty${id}`).value);
   const box = document.getElementById(`users_${id}`);
@@ -123,32 +146,33 @@ function genUsers(id){
   const stock = Number(document.getElementById(`product${id}`)
     .selectedOptions[0].dataset.stock);
 
-  if (qty <= 0) {
+  if (qty <= 0){
     document.getElementById(`qty${id}`).value = "";
     return;
   }
 
-  if (qty > stock) {
-    alert(`❗ ของเหลือ ${stock}`);
+  if (qty > stock){
     document.getElementById(`qty${id}`).value = stock;
     return genUsers(id);
   }
 
-  for (let i = 0; i < qty; i++) {
+  for (let i=0;i<qty;i++){
     box.innerHTML += `<input placeholder="ผู้ใช้คนที่ ${i+1}" id="user_${id}_${i}">`;
   }
 }
 
+/* ===== ลบ ===== */
 function removeItem(id){
-  document.getElementById("row_" + id).remove();
-  items = items.filter(i => i !== id);
+  document.getElementById("row_"+id).remove();
+  items = items.filter(i=>i!==id);
 }
 
+/* ===== บันทึก ===== */
 function submitData(){
   const requester = document.getElementById("requester").value;
 
-  if (!requester) { alert("❗ ใส่ชื่อผู้เบิก"); return; }
-  if (items.length === 0) { alert("❗ ต้องมีรายการ"); return; }
+  if (!requester){ showLoading("❗ ใส่ชื่อผู้เบิก"); setTimeout(hideLoading,1200); return; }
+  if (items.length === 0){ showLoading("❗ ต้องมีรายการ"); setTimeout(hideLoading,1200); return; }
 
   let data = { requester, items: [] };
 
@@ -157,14 +181,17 @@ function submitData(){
     const qty = Number(document.getElementById(`qty${id}`).value);
 
     if (!qty || qty <= 0){
-      alert("❗ จำนวนไม่ถูกต้อง");
+      showLoading("❗ จำนวนไม่ถูกต้อง");
+      setTimeout(hideLoading,1200);
       return;
     }
 
-    for (let i = 0; i < qty; i++){
+    for (let i=0;i<qty;i++){
       const user = document.getElementById(`user_${id}_${i}`).value;
+
       if (!user){
-        alert("❗ ใส่ชื่อผู้ใช้ให้ครบ");
+        showLoading("❗ ใส่ชื่อผู้ใช้ให้ครบ");
+        setTimeout(hideLoading,1200);
         return;
       }
 
@@ -172,20 +199,22 @@ function submitData(){
     }
   }
 
-  document.getElementById("loading").style.display = "flex";
+  showLoading("⏳ กำลังบันทึกข้อมูล...");
 
   fetch(scriptURL,{
     method:"POST",
     body:JSON.stringify(data)
   })
   .then(()=>{
-    document.getElementById("loading").style.display = "none";
-    alert("✅ บันทึกสำเร็จ");
-    location.reload();
+    showLoading("✅ บันทึกสำเร็จ");
+
+    setTimeout(()=>{
+      location.reload();
+    },1000);
   })
   .catch(err=>{
-    document.getElementById("loading").style.display = "none";
-    alert("❌ "+err);
+    showLoading("❌ "+err);
+    setTimeout(hideLoading,1500);
   });
 }
 </script>
