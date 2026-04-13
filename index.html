@@ -13,7 +13,7 @@ body {
 }
 
 .container {
-  max-width: 600px;
+  max-width: 650px;
   margin: auto;
   background: #1e293b;
   padding: 20px;
@@ -25,23 +25,28 @@ input, select {
   margin: 5px;
   border-radius: 5px;
   border: none;
-  width: 30%;
+}
+
+.row {
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+}
+
+.row input, .row select {
+  width: 25%;
 }
 
 button {
   padding: 10px;
-  margin-top: 10px;
   border: none;
   border-radius: 5px;
   cursor: pointer;
 }
 
-.add { background: #22c55e; }
-.save { background: #3b82f6; }
-
-.row {
-  margin-bottom: 10px;
-}
+.add { background: #22c55e; margin-top: 10px; }
+.save { background: #3b82f6; margin-top: 10px; }
+.delete { background: #ef4444; margin-left: 5px; }
 </style>
 </head>
 
@@ -63,24 +68,21 @@ button {
 let items = [];
 let products = [];
 
-const scriptURL = "https://script.google.com/macros/s/AKfycbwvLvTK_JejpPsugtg_o8p0eHzPQi3SHaE94k3rOqavPmWgVotU_nxb5bxDswHK1OPhPw/exec";
+const scriptURL = "https://script.google.com/macros/s/AKfycbyd8Zw8MIPYksrCmI6NNmKzXbNzOVJ6asiM67KjGIbh8aRoo3NTXxEbQaIpf_yXRynIfA/exec";
 
-// โหลดสินค้า (เรียกครั้งเดียว)
+// โหลดสินค้า
 fetch(scriptURL)
 .then(res => res.json())
 .then(data => {
   products = data;
-
-  // เคลียร์ก่อน (กันซ้ำ)
   document.getElementById("items").innerHTML = "";
   items = [];
-
-  addItem(); // เรียกครั้งเดียว
+  addItem();
 });
 
-// เพิ่มแถว
+// เพิ่มรายการ
 function addItem() {
-  const index = items.length;
+  const index = Date.now(); // กัน id ซ้ำ
 
   let options = products.map(p => 
     `<option value="${p.name}">${p.name} (เหลือ ${p.stock})</option>`
@@ -88,14 +90,23 @@ function addItem() {
 
   const div = document.createElement("div");
   div.className = "row";
+  div.id = "row_" + index;
+
   div.innerHTML = `
     <select id="product${index}">${options}</select>
-    <input id="qty${index}" type="number" placeholder="จำนวนที่เบิก">
-    <input id="user${index}" placeholder="ชื่อผู้ใช้">
+    <input id="qty${index}" type="number" placeholder="จำนวน">
+    <input id="user${index}" placeholder="ผู้ใช้">
+    <button class="delete" onclick="removeItem(${index})">ลบ</button>
   `;
 
   document.getElementById("items").appendChild(div);
   items.push(index);
+}
+
+// ลบรายการ
+function removeItem(index) {
+  document.getElementById("row_" + index).remove();
+  items = items.filter(i => i !== index);
 }
 
 // ส่งข้อมูล
@@ -103,7 +114,7 @@ function submitData() {
   const requester = document.getElementById("requester").value;
 
   if (!requester) {
-    alert("กรุณาใส่ชื่อผู้เบิก");
+    alert("❗ กรุณาใส่ชื่อผู้เบิก");
     return;
   }
 
@@ -112,19 +123,18 @@ function submitData() {
     items: []
   };
 
-  items.forEach(i => {
-    const product = document.getElementById(`product${i}`).value;
-    const qty = document.getElementById(`qty${i}`).value;
-    const user = document.getElementById(`user${i}`).value;
+  for (let i of items) {
+    const product = document.getElementById(`product${i}`)?.value;
+    const qty = document.getElementById(`qty${i}`)?.value;
+    const user = document.getElementById(`user${i}`)?.value;
 
-    if(product && qty && user){
-      data.items.push({ product, qty, user });
+    // ❌ ถ้ามีแถวไหนกรอกไม่ครบ → ห้ามบันทึก
+    if (!product || !qty || !user) {
+      alert("❗ กรุณากรอกข้อมูลให้ครบทุกช่อง");
+      return;
     }
-  });
 
-  if (data.items.length === 0) {
-    alert("กรุณาใส่รายการ");
-    return;
+    data.items.push({ product, qty, user });
   }
 
   fetch(scriptURL, {
@@ -132,7 +142,7 @@ function submitData() {
     body: JSON.stringify(data)
   })
   .then(() => {
-    alert("บันทึกสำเร็จ!");
+    alert("✅ บันทึกสำเร็จ!");
     location.reload();
   })
   .catch(err => alert("Error: " + err));
