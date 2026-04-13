@@ -63,14 +63,19 @@ button {
 let items = [];
 let products = [];
 
-const scriptURL = "https://script.google.com/macros/s/AKfycbwWt7h5FInelkLjW6WMUp_bhUXmItCYJF0zMlJboATnujdvqgDpQsKnJkUBrFREUs7g5g/exec";
+const scriptURL = "https://script.google.com/macros/s/AKfycbwvLvTK_JejpPsugtg_o8p0eHzPQi3SHaE94k3rOqavPmWgVotU_nxb5bxDswHK1OPhPw/exec";
 
-// โหลดสินค้า
+// โหลดสินค้า (เรียกครั้งเดียว)
 fetch(scriptURL)
 .then(res => res.json())
 .then(data => {
   products = data;
-  addItem();
+
+  // เคลียร์ก่อน (กันซ้ำ)
+  document.getElementById("items").innerHTML = "";
+  items = [];
+
+  addItem(); // เรียกครั้งเดียว
 });
 
 // เพิ่มแถว
@@ -97,6 +102,11 @@ function addItem() {
 function submitData() {
   const requester = document.getElementById("requester").value;
 
+  if (!requester) {
+    alert("กรุณาใส่ชื่อผู้เบิก");
+    return;
+  }
+
   let data = {
     requester: requester,
     items: []
@@ -111,6 +121,11 @@ function submitData() {
       data.items.push({ product, qty, user });
     }
   });
+
+  if (data.items.length === 0) {
+    alert("กรุณาใส่รายการ");
+    return;
+  }
 
   fetch(scriptURL, {
     method: "POST",
