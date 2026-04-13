@@ -1,38 +1,98 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>เบิกของ</title>
+<meta charset="UTF-8">
+<title>เบิกของ</title>
+
+<style>
+body {
+  background: #0f172a;
+  color: white;
+  font-family: Arial;
+  padding: 20px;
+}
+
+.container {
+  max-width: 600px;
+  margin: auto;
+  background: #1e293b;
+  padding: 20px;
+  border-radius: 10px;
+}
+
+input, select {
+  padding: 8px;
+  margin: 5px;
+  border-radius: 5px;
+  border: none;
+}
+
+button {
+  padding: 10px;
+  margin-top: 10px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.add { background: #22c55e; }
+.save { background: #3b82f6; }
+
+.row {
+  margin-bottom: 10px;
+}
+</style>
 </head>
+
 <body>
 
-<h2>ฟอร์มเบิกของ</h2>
+<div class="container">
+<h2>📦 ระบบเบิก PPE</h2>
 
-ชื่อผู้เบิก:
+<label>ชื่อผู้เบิก:</label><br>
 <input id="requester"><br><br>
 
 <div id="items"></div>
 
-<button onclick="addItem()">+ เพิ่มรายการ</button><br><br>
-
-<button onclick="submitData()">บันทึก</button>
+<button class="add" onclick="addItem()">+ เพิ่มรายการ</button><br>
+<button class="save" onclick="submitData()">บันทึก</button>
+</div>
 
 <script>
 let items = [];
+let products = [];
 
+const scriptURL = "PUT_YOUR_WEB_APP_URL_HERE";
+
+// โหลดสินค้า
+fetch(scriptURL)
+.then(res => res.json())
+.then(data => {
+  products = data;
+  addItem();
+});
+
+// เพิ่มแถว
 function addItem() {
   const index = items.length;
 
+  let options = products.map(p => `<option value="${p}">${p}</option>`).join("");
+
   const div = document.createElement("div");
+  div.className = "row";
   div.innerHTML = `
-    สินค้า: <input id="product${index}">
-    จำนวน: <input id="qty${index}">
-    ผู้ใช้: <input id="user${index}">
+    <select id="product${index}">
+      ${options}
+    </select>
+    <input id="qty${index}" type="number" placeholder="จำนวน">
+    <input id="user${index}" placeholder="ผู้ใช้">
   `;
 
   document.getElementById("items").appendChild(div);
   items.push(index);
 }
 
+// ส่งข้อมูล
 function submitData() {
   const requester = document.getElementById("requester").value;
 
@@ -42,18 +102,23 @@ function submitData() {
   };
 
   items.forEach(i => {
-    data.items.push({
-      product: document.getElementById(`product${i}`).value,
-      qty: document.getElementById(`qty${i}`).value,
-      user: document.getElementById(`user${i}`).value
-    });
+    const product = document.getElementById(`product${i}`).value;
+    const qty = document.getElementById(`qty${i}`).value;
+    const user = document.getElementById(`user${i}`).value;
+
+    if(product && qty && user){
+      data.items.push({ product, qty, user });
+    }
   });
 
-  fetch("https://script.google.com/macros/s/AKfycbwjjpNJzYrz1qRrq6cLSG1tKwUuTea8nuRQYUKtoEtPTrNm_ovgBLCMzbGG3iiAf0OEjQ/exec", {
+  fetch(scriptURL, {
     method: "POST",
     body: JSON.stringify(data)
   })
-  .then(res => alert("บันทึกสำเร็จ"));
+  .then(() => {
+    alert("บันทึกสำเร็จ!");
+    location.reload();
+  });
 }
 </script>
 
