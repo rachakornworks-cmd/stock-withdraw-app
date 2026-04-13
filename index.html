@@ -2,54 +2,69 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>ระบบเบิก PPE</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>เบิก PPE</title>
 
 <style>
 body {
   background: #0f172a;
-  color: white;
-  font-family: Arial;
-  padding: 20px;
+  color: #fff;
+  font-family: sans-serif;
+  margin: 0;
 }
 
 .container {
-  max-width: 650px;
-  margin: auto;
+  padding: 15px;
+}
+
+h2 {
+  text-align: center;
+}
+
+.card {
   background: #1e293b;
-  padding: 20px;
+  padding: 12px;
   border-radius: 10px;
-}
-
-input, select {
-  padding: 10px;
-  margin: 5px;
-  border-radius: 5px;
-  border: none;
-}
-
-.row {
   margin-bottom: 10px;
 }
 
-button {
+input, select {
+  width: 100%;
   padding: 10px;
+  margin-top: 5px;
+  border-radius: 8px;
   border: none;
-  border-radius: 5px;
-  cursor: pointer;
+  font-size: 16px;
+}
+
+button {
+  width: 100%;
+  padding: 12px;
+  margin-top: 10px;
+  border: none;
+  border-radius: 10px;
+  font-size: 16px;
 }
 
 .add { background: #22c55e; }
 .save { background: #3b82f6; }
 .delete { background: #ef4444; }
+
+.stock {
+  font-size: 12px;
+  color: #94a3b8;
+}
 </style>
 </head>
 
 <body>
 
 <div class="container">
-<h2>📦 ระบบเบิก PPE</h2>
+<h2>📦 เบิก PPE</h2>
 
-<input id="requester" placeholder="ชื่อผู้เบิก"><br><br>
+<div class="card">
+<input id="requester" placeholder="ชื่อผู้เบิก">
+</div>
 
 <div id="items"></div>
 
@@ -61,7 +76,7 @@ button {
 let items = [];
 let products = [];
 
-const scriptURL = "https://script.google.com/macros/s/AKfycbwXq1ODwsyX8vEHEIFoPcjiTvVviCY2CalHst0fWqXD6SqQL-JrNeArbxQoxgZrvQIiNA/exec";
+const scriptURL = "https://script.google.com/macros/s/AKfycbxK0--VHOYNdq3XDnWAc6u76SLcocYIkha1efvLfKPQdpGUwX5FoGlJSYGbrTs0g1Kfeg/exec";
 
 fetch(scriptURL)
 .then(res => res.json())
@@ -70,40 +85,68 @@ fetch(scriptURL)
   addItem();
 });
 
-// เพิ่มรายการ
 function addItem() {
   const id = Date.now();
 
   let options = products.map(p =>
-    `<option value="${p.name}">${p.name} (เหลือ ${p.stock})</option>`
+    `<option value="${p.name}" data-stock="${p.stock}">
+      ${p.name} (เหลือ ${p.stock})
+    </option>`
   ).join("");
 
   const div = document.createElement("div");
-  div.className = "row";
+  div.className = "card";
   div.id = "row_" + id;
 
   div.innerHTML = `
-    <select id="product${id}">${options}</select>
-    <input type="number" min="1" id="qty${id}" placeholder="จำนวน" onchange="genUsers(${id})">
+    <select id="product${id}" onchange="updateStock(${id})">
+      ${options}
+    </select>
+
+    <div class="stock" id="stock_${id}"></div>
+
+    <input type="number" min="1" id="qty${id}" placeholder="จำนวน"
+      oninput="genUsers(${id})">
+
     <div id="users_${id}"></div>
+
     <button class="delete" onclick="removeItem(${id})">ลบ</button>
   `;
 
   document.getElementById("items").appendChild(div);
   items.push(id);
+
+  updateStock(id);
 }
 
-// สร้างช่อง user
-function genUsers(id) {
-  const qty = Number(document.getElementById(`qty${id}`).value);
-  const box = document.getElementById(`users_${id}`);
+// แสดง stock
+function updateStock(id) {
+  const select = document.getElementById(`product${id}`);
+  const stock = select.options[select.selectedIndex].dataset.stock;
+  document.getElementById(`stock_${id}`).innerText = "คงเหลือ: " + stock;
+}
 
+// สร้างช่อง user + กันเกิน stock
+function genUsers(id) {
+  const qtyInput = document.getElementById(`qty${id}`);
+  const qty = Number(qtyInput.value);
+
+  const select = document.getElementById(`product${id}`);
+  const stock = Number(select.options[select.selectedIndex].dataset.stock);
+
+  const box = document.getElementById(`users_${id}`);
   box.innerHTML = "";
 
   if (qty <= 0) {
-    alert("❗ จำนวนต้องมากกว่า 0");
-    document.getElementById(`qty${id}`).value = "";
+    qtyInput.value = "";
     return;
+  }
+
+  // ❌ กันเกิน stock
+  if (qty > stock) {
+    alert(`❗ ของเหลือ ${stock} ชิ้น`);
+    qtyInput.value = stock;
+    return genUsers(id);
   }
 
   for (let i = 0; i < qty; i++) {
@@ -111,13 +154,11 @@ function genUsers(id) {
   }
 }
 
-// ลบรายการ
 function removeItem(id) {
   document.getElementById("row_" + id).remove();
   items = items.filter(i => i !== id);
 }
 
-// ส่งข้อมูล
 function submitData() {
   const requester = document.getElementById("requester").value;
 
@@ -127,7 +168,7 @@ function submitData() {
   }
 
   if (items.length === 0) {
-    alert("❗ ต้องมีอย่างน้อย 1 รายการ");
+    alert("❗ ต้องมีรายการ");
     return;
   }
 
@@ -137,24 +178,20 @@ function submitData() {
     const product = document.getElementById(`product${id}`).value;
     const qty = Number(document.getElementById(`qty${id}`).value);
 
-    if (!product || !qty || qty <= 0) {
-      alert("❗ จำนวนต้องมากกว่า 0");
+    if (!qty || qty <= 0) {
+      alert("❗ จำนวนไม่ถูกต้อง");
       return;
     }
 
     for (let i = 0; i < qty; i++) {
-      const user = document.getElementById(`user_${id}_${i}`)?.value;
+      const user = document.getElementById(`user_${id}_${i}`).value;
 
       if (!user) {
         alert("❗ ใส่ชื่อผู้ใช้ให้ครบ");
         return;
       }
 
-      data.items.push({
-        product,
-        qty: 1,
-        user
-      });
+      data.items.push({ product, qty: 1, user });
     }
   }
 
@@ -165,8 +202,7 @@ function submitData() {
   .then(() => {
     alert("✅ บันทึกสำเร็จ");
     location.reload();
-  })
-  .catch(err => alert("Error: " + err));
+  });
 }
 </script>
 
