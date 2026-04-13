@@ -172,7 +172,7 @@ function submitData(){
   const requester = document.getElementById("requester").value;
 
   if (!requester){ showLoading("❗ ใส่ชื่อผู้เบิก"); setTimeout(hideLoading,1200); return; }
-  if (items.length === 0){ showLoading("❗ ต้องมีรายการ"); setTimeout(hideLoading,1200); return; }
+  if (items.length === 0){ showLoading("❗ ต้องมีรายการ"); setTimeout(hideLoading,3200); return; }
 
   let data = { requester, items: [] };
 
@@ -182,7 +182,7 @@ function submitData(){
 
     if (!qty || qty <= 0){
       showLoading("❗ จำนวนไม่ถูกต้อง");
-      setTimeout(hideLoading,1200);
+      setTimeout(hideLoading,3200);
       return;
     }
 
@@ -191,7 +191,7 @@ function submitData(){
 
       if (!user){
         showLoading("❗ ใส่ชื่อผู้ใช้ให้ครบ");
-        setTimeout(hideLoading,1200);
+        setTimeout(hideLoading,3200);
         return;
       }
 
@@ -210,11 +210,11 @@ function submitData(){
 
     setTimeout(()=>{
       location.reload();
-    },3000);
+    },3200);
   })
   .catch(err=>{
     showLoading("❌ "+err);
-    setTimeout(hideLoading,1500);
+    setTimeout(hideLoading,3200);
   });
 }
 </script>
