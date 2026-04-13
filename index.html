@@ -21,6 +21,8 @@ button {
 .save { background:#3b82f6; }
 .delete { background:#ef4444; }
 
+.stock { font-size:12px; color:#94a3b8; }
+
 #loading {
   display:none; position:fixed; top:0; left:0;
   width:100%; height:100%;
@@ -43,14 +45,9 @@ button {
 <body>
 
 <div class="container">
-<h2>📦 ระบบสต็อก</h2>
+<h2>📦 เบิก PPE</h2>
 
-<select id="type">
-  <option value="withdraw">เบิกของ</option>
-  <option value="add">เพิ่มสต็อก</option>
-</select>
-
-<input id="requester" placeholder="ชื่อผู้ทำรายการ">
+<input id="requester" placeholder="ชื่อผู้เบิก">
 
 <div id="items"></div>
 
@@ -68,33 +65,41 @@ button {
 <script>
 let items = [];
 let products = [];
-const scriptURL = "https://script.google.com/macros/s/AKfycbwHzjxaIkHnR1DhGmp3Kv8Db9GraDsdz0vnHc2Re9FGhIpCG71EBy4ibzknjql-R6qKQQ/exec";
+
+const scriptURL = "https://script.google.com/macros/s/AKfycbyairo4en2OS2mN_dxDWt3T52fW6Xqv3zUNfX1xzJVqDhJU-aSZG63nDx44Hi3F0Cuc2A/exec";
 
 fetch(scriptURL)
-.then(res=>res.json())
-.then(data=>{
-  products=data;
+.then(res => res.json())
+.then(data => {
+  products = data;
   addItem();
 });
 
 function addItem(){
-  const id=Date.now();
+  const id = Date.now();
 
-  let options=products.map(p=>
+  let options = products.map(p =>
     `<option value="${p.name}" data-stock="${p.stock}">
-      ${p.name} (เหลือ ${p.stock})
+      ${p.name}
     </option>`
   ).join("");
 
-  const div=document.createElement("div");
-  div.className="card";
-  div.id="row_"+id;
+  const div = document.createElement("div");
+  div.className = "card";
+  div.id = "row_" + id;
 
-  div.innerHTML=`
-    <select id="product${id}" onchange="updateStock(${id})">${options}</select>
-    <div id="stock_${id}"></div>
-    <input type="number" min="1" id="qty${id}" placeholder="จำนวน" oninput="genUsers(${id})">
+  div.innerHTML = `
+    <select id="product${id}" onchange="updateStock(${id})">
+      ${options}
+    </select>
+
+    <div class="stock" id="stock_${id}"></div>
+
+    <input type="number" min="1" id="qty${id}" placeholder="จำนวน"
+      oninput="genUsers(${id})">
+
     <div id="users_${id}"></div>
+
     <button class="delete" onclick="removeItem(${id})">ลบ</button>
   `;
 
@@ -105,78 +110,82 @@ function addItem(){
 }
 
 function updateStock(id){
-  const s=document.getElementById(`product${id}`);
-  const stock=s.options[s.selectedIndex].dataset.stock;
-  document.getElementById(`stock_${id}`).innerText="คงเหลือ: "+stock;
+  const s = document.getElementById(`product${id}`);
+  const stock = s.options[s.selectedIndex].dataset.stock;
+  document.getElementById(`stock_${id}`).innerText = "คงเหลือ: " + stock;
 }
 
 function genUsers(id){
-  const qty=Number(document.getElementById(`qty${id}`).value);
-  const type=document.getElementById("type").value;
-  const box=document.getElementById(`users_${id}`);
-  box.innerHTML="";
+  const qty = Number(document.getElementById(`qty${id}`).value);
+  const box = document.getElementById(`users_${id}`);
+  box.innerHTML = "";
 
-  if(type==="add") return;
-
-  const stock=Number(document.getElementById(`product${id}`)
+  const stock = Number(document.getElementById(`product${id}`)
     .selectedOptions[0].dataset.stock);
 
-  if(qty>stock){
-    alert("ของไม่พอ");
-    document.getElementById(`qty${id}`).value=stock;
+  if (qty <= 0) {
+    document.getElementById(`qty${id}`).value = "";
+    return;
+  }
+
+  if (qty > stock) {
+    alert(`❗ ของเหลือ ${stock}`);
+    document.getElementById(`qty${id}`).value = stock;
     return genUsers(id);
   }
 
-  for(let i=0;i<qty;i++){
-    box.innerHTML+=`<input placeholder="ผู้ใช้ ${i+1}" id="user_${id}_${i}">`;
+  for (let i = 0; i < qty; i++) {
+    box.innerHTML += `<input placeholder="ผู้ใช้คนที่ ${i+1}" id="user_${id}_${i}">`;
   }
 }
 
 function removeItem(id){
-  document.getElementById("row_"+id).remove();
-  items=items.filter(i=>i!==id);
+  document.getElementById("row_" + id).remove();
+  items = items.filter(i => i !== id);
 }
 
 function submitData(){
-  const type=document.getElementById("type").value;
-  const requester=document.getElementById("requester").value;
+  const requester = document.getElementById("requester").value;
 
-  if(!requester){ alert("ใส่ชื่อ"); return; }
-  if(items.length===0){ alert("ไม่มีรายการ"); return; }
+  if (!requester) { alert("❗ ใส่ชื่อผู้เบิก"); return; }
+  if (items.length === 0) { alert("❗ ต้องมีรายการ"); return; }
 
-  let data={ type, requester, items:[] };
+  let data = { requester, items: [] };
 
-  for(let id of items){
-    const product=document.getElementById(`product${id}`).value;
-    const qty=Number(document.getElementById(`qty${id}`).value);
+  for (let id of items){
+    const product = document.getElementById(`product${id}`).value;
+    const qty = Number(document.getElementById(`qty${id}`).value);
 
-    if(qty<=0){ alert("จำนวนผิด"); return; }
+    if (!qty || qty <= 0){
+      alert("❗ จำนวนไม่ถูกต้อง");
+      return;
+    }
 
-    if(type==="withdraw"){
-      for(let i=0;i<qty;i++){
-        const user=document.getElementById(`user_${id}_${i}`).value;
-        if(!user){ alert("ใส่ชื่อผู้ใช้ให้ครบ"); return; }
-        data.items.push({product, qty:1, user});
+    for (let i = 0; i < qty; i++){
+      const user = document.getElementById(`user_${id}_${i}`).value;
+      if (!user){
+        alert("❗ ใส่ชื่อผู้ใช้ให้ครบ");
+        return;
       }
-    } else {
-      data.items.push({product, qty});
+
+      data.items.push({ product, qty:1, user });
     }
   }
 
-  document.getElementById("loading").style.display="flex";
+  document.getElementById("loading").style.display = "flex";
 
   fetch(scriptURL,{
     method:"POST",
     body:JSON.stringify(data)
   })
   .then(()=>{
-    document.getElementById("loading").style.display="none";
-    alert("สำเร็จ");
+    document.getElementById("loading").style.display = "none";
+    alert("✅ บันทึกสำเร็จ");
     location.reload();
   })
   .catch(err=>{
-    document.getElementById("loading").style.display="none";
-    alert("Error "+err);
+    document.getElementById("loading").style.display = "none";
+    alert("❌ "+err);
   });
 }
 </script>
