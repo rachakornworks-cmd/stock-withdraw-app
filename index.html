@@ -1,70 +1,56 @@
 <!DOCTYPE html>
 <html>
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>เบิก PPE</title>
-
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <style>
-body {
-  background: #0f172a;
-  color: #fff;
-  font-family: sans-serif;
-  margin: 0;
-}
-
-.container {
-  padding: 15px;
-}
-
-h2 {
-  text-align: center;
-}
-
-.card {
-  background: #1e293b;
-  padding: 12px;
-  border-radius: 10px;
-  margin-bottom: 10px;
-}
+body { background:#0f172a; color:white; font-family:sans-serif; margin:0; }
+.container { padding:15px; }
+.card { background:#1e293b; padding:12px; border-radius:10px; margin-bottom:10px; }
 
 input, select {
-  width: 100%;
-  padding: 10px;
-  margin-top: 5px;
-  border-radius: 8px;
-  border: none;
-  font-size: 16px;
+  width:100%; padding:10px; margin-top:5px;
+  border-radius:8px; border:none;
 }
 
 button {
-  width: 100%;
-  padding: 12px;
-  margin-top: 10px;
-  border: none;
-  border-radius: 10px;
-  font-size: 16px;
+  width:100%; padding:12px; margin-top:10px;
+  border:none; border-radius:10px;
 }
 
-.add { background: #22c55e; }
-.save { background: #3b82f6; }
-.delete { background: #ef4444; }
+.add { background:#22c55e; }
+.save { background:#3b82f6; }
+.delete { background:#ef4444; }
 
-.stock {
-  font-size: 12px;
-  color: #94a3b8;
+#loading {
+  display:none; position:fixed; top:0; left:0;
+  width:100%; height:100%;
+  background:rgba(0,0,0,0.8);
+  justify-content:center; align-items:center;
 }
+
+.spinner {
+  border:4px solid #333;
+  border-top:4px solid #22c55e;
+  border-radius:50%;
+  width:40px; height:40px;
+  animation:spin 1s linear infinite;
+}
+
+@keyframes spin { 100% { transform:rotate(360deg);} }
 </style>
 </head>
 
 <body>
 
 <div class="container">
-<h2>📦 เบิก PPE</h2>
+<h2>📦 ระบบสต็อก</h2>
 
-<div class="card">
-<input id="requester" placeholder="ชื่อผู้เบิก">
-</div>
+<select id="type">
+  <option value="withdraw">เบิกของ</option>
+  <option value="add">เพิ่มสต็อก</option>
+</select>
+
+<input id="requester" placeholder="ชื่อผู้ทำรายการ">
 
 <div id="items"></div>
 
@@ -72,44 +58,43 @@ button {
 <button class="save" onclick="submitData()">บันทึก</button>
 </div>
 
+<div id="loading">
+  <div>
+    <div class="spinner"></div>
+    <p>กำลังบันทึก...</p>
+  </div>
+</div>
+
 <script>
 let items = [];
 let products = [];
-
-const scriptURL = "https://script.google.com/macros/s/AKfycbxK0--VHOYNdq3XDnWAc6u76SLcocYIkha1efvLfKPQdpGUwX5FoGlJSYGbrTs0g1Kfeg/exec";
+const scriptURL = "https://script.google.com/macros/s/AKfycbwHzjxaIkHnR1DhGmp3Kv8Db9GraDsdz0vnHc2Re9FGhIpCG71EBy4ibzknjql-R6qKQQ/exec";
 
 fetch(scriptURL)
-.then(res => res.json())
-.then(data => {
-  products = data;
+.then(res=>res.json())
+.then(data=>{
+  products=data;
   addItem();
 });
 
-function addItem() {
-  const id = Date.now();
+function addItem(){
+  const id=Date.now();
 
-  let options = products.map(p =>
+  let options=products.map(p=>
     `<option value="${p.name}" data-stock="${p.stock}">
       ${p.name} (เหลือ ${p.stock})
     </option>`
   ).join("");
 
-  const div = document.createElement("div");
-  div.className = "card";
-  div.id = "row_" + id;
+  const div=document.createElement("div");
+  div.className="card";
+  div.id="row_"+id;
 
-  div.innerHTML = `
-    <select id="product${id}" onchange="updateStock(${id})">
-      ${options}
-    </select>
-
-    <div class="stock" id="stock_${id}"></div>
-
-    <input type="number" min="1" id="qty${id}" placeholder="จำนวน"
-      oninput="genUsers(${id})">
-
+  div.innerHTML=`
+    <select id="product${id}" onchange="updateStock(${id})">${options}</select>
+    <div id="stock_${id}"></div>
+    <input type="number" min="1" id="qty${id}" placeholder="จำนวน" oninput="genUsers(${id})">
     <div id="users_${id}"></div>
-
     <button class="delete" onclick="removeItem(${id})">ลบ</button>
   `;
 
@@ -119,89 +104,79 @@ function addItem() {
   updateStock(id);
 }
 
-// แสดง stock
-function updateStock(id) {
-  const select = document.getElementById(`product${id}`);
-  const stock = select.options[select.selectedIndex].dataset.stock;
-  document.getElementById(`stock_${id}`).innerText = "คงเหลือ: " + stock;
+function updateStock(id){
+  const s=document.getElementById(`product${id}`);
+  const stock=s.options[s.selectedIndex].dataset.stock;
+  document.getElementById(`stock_${id}`).innerText="คงเหลือ: "+stock;
 }
 
-// สร้างช่อง user + กันเกิน stock
-function genUsers(id) {
-  const qtyInput = document.getElementById(`qty${id}`);
-  const qty = Number(qtyInput.value);
+function genUsers(id){
+  const qty=Number(document.getElementById(`qty${id}`).value);
+  const type=document.getElementById("type").value;
+  const box=document.getElementById(`users_${id}`);
+  box.innerHTML="";
 
-  const select = document.getElementById(`product${id}`);
-  const stock = Number(select.options[select.selectedIndex].dataset.stock);
+  if(type==="add") return;
 
-  const box = document.getElementById(`users_${id}`);
-  box.innerHTML = "";
+  const stock=Number(document.getElementById(`product${id}`)
+    .selectedOptions[0].dataset.stock);
 
-  if (qty <= 0) {
-    qtyInput.value = "";
-    return;
-  }
-
-  // ❌ กันเกิน stock
-  if (qty > stock) {
-    alert(`❗ ของเหลือ ${stock} ชิ้น`);
-    qtyInput.value = stock;
+  if(qty>stock){
+    alert("ของไม่พอ");
+    document.getElementById(`qty${id}`).value=stock;
     return genUsers(id);
   }
 
-  for (let i = 0; i < qty; i++) {
-    box.innerHTML += `<input placeholder="ผู้ใช้คนที่ ${i+1}" id="user_${id}_${i}">`;
+  for(let i=0;i<qty;i++){
+    box.innerHTML+=`<input placeholder="ผู้ใช้ ${i+1}" id="user_${id}_${i}">`;
   }
 }
 
-function removeItem(id) {
-  document.getElementById("row_" + id).remove();
-  items = items.filter(i => i !== id);
+function removeItem(id){
+  document.getElementById("row_"+id).remove();
+  items=items.filter(i=>i!==id);
 }
 
-function submitData() {
-  const requester = document.getElementById("requester").value;
+function submitData(){
+  const type=document.getElementById("type").value;
+  const requester=document.getElementById("requester").value;
 
-  if (!requester) {
-    alert("❗ ใส่ชื่อผู้เบิก");
-    return;
-  }
+  if(!requester){ alert("ใส่ชื่อ"); return; }
+  if(items.length===0){ alert("ไม่มีรายการ"); return; }
 
-  if (items.length === 0) {
-    alert("❗ ต้องมีรายการ");
-    return;
-  }
+  let data={ type, requester, items:[] };
 
-  let data = { requester, items: [] };
+  for(let id of items){
+    const product=document.getElementById(`product${id}`).value;
+    const qty=Number(document.getElementById(`qty${id}`).value);
 
-  for (let id of items) {
-    const product = document.getElementById(`product${id}`).value;
-    const qty = Number(document.getElementById(`qty${id}`).value);
+    if(qty<=0){ alert("จำนวนผิด"); return; }
 
-    if (!qty || qty <= 0) {
-      alert("❗ จำนวนไม่ถูกต้อง");
-      return;
-    }
-
-    for (let i = 0; i < qty; i++) {
-      const user = document.getElementById(`user_${id}_${i}`).value;
-
-      if (!user) {
-        alert("❗ ใส่ชื่อผู้ใช้ให้ครบ");
-        return;
+    if(type==="withdraw"){
+      for(let i=0;i<qty;i++){
+        const user=document.getElementById(`user_${id}_${i}`).value;
+        if(!user){ alert("ใส่ชื่อผู้ใช้ให้ครบ"); return; }
+        data.items.push({product, qty:1, user});
       }
-
-      data.items.push({ product, qty: 1, user });
+    } else {
+      data.items.push({product, qty});
     }
   }
 
-  fetch(scriptURL, {
-    method: "POST",
-    body: JSON.stringify(data)
+  document.getElementById("loading").style.display="flex";
+
+  fetch(scriptURL,{
+    method:"POST",
+    body:JSON.stringify(data)
   })
-  .then(() => {
-    alert("✅ บันทึกสำเร็จ");
+  .then(()=>{
+    document.getElementById("loading").style.display="none";
+    alert("สำเร็จ");
     location.reload();
+  })
+  .catch(err=>{
+    document.getElementById("loading").style.display="none";
+    alert("Error "+err);
   });
 }
 </script>
