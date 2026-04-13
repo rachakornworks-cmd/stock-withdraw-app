@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>เบิกของ</title>
+<title>ระบบเบิก PPE</title>
 
 <style>
 body {
@@ -21,10 +21,11 @@ body {
 }
 
 input, select {
-  padding: 8px;
+  padding: 10px;
   margin: 5px;
   border-radius: 5px;
   border: none;
+  width: 30%;
 }
 
 button {
@@ -50,7 +51,7 @@ button {
 <h2>📦 ระบบเบิก PPE</h2>
 
 <label>ชื่อผู้เบิก:</label><br>
-<input id="requester"><br><br>
+<input id="requester" placeholder="ชื่อผู้เบิก"><br><br>
 
 <div id="items"></div>
 
@@ -62,7 +63,7 @@ button {
 let items = [];
 let products = [];
 
-const scriptURL = "https://script.google.com/macros/s/AKfycbwf9GvKGjIuHTPD2w51MTWOOk5yCYkSXtRsgw0yxqXnC_lP005EXVypSX9SFX-YAg0ojg/exec";
+const scriptURL = "PUT_YOUR_WEB_APP_URL_HERE";
 
 // โหลดสินค้า
 fetch(scriptURL)
@@ -76,14 +77,14 @@ fetch(scriptURL)
 function addItem() {
   const index = items.length;
 
-  let options = products.map(p => `<option value="${p}">${p}</option>`).join("");
+  let options = products.map(p => 
+    `<option value="${p.name}">${p.name} (เหลือ ${p.stock})</option>`
+  ).join("");
 
   const div = document.createElement("div");
   div.className = "row";
   div.innerHTML = `
-    <select id="product${index}">
-      ${options}
-    </select>
+    <select id="product${index}">${options}</select>
     <input id="qty${index}" type="number" placeholder="จำนวน">
     <input id="user${index}" placeholder="ผู้ใช้">
   `;
@@ -118,7 +119,8 @@ function submitData() {
   .then(() => {
     alert("บันทึกสำเร็จ!");
     location.reload();
-  });
+  })
+  .catch(err => alert("Error: " + err));
 }
 </script>
 
