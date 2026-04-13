@@ -90,8 +90,8 @@ function addItem() {
   div.className = "row";
   div.innerHTML = `
     <select id="product${index}">${options}</select>
-    <input id="qty${index}" type="number" placeholder="จำนวน">
-    <input id="user${index}" placeholder="ผู้ใช้">
+    <input id="qty${index}" type="number" placeholder="จำนวนที่เบิก">
+    <input id="user${index}" placeholder="ชื่อผู้ใช้">
   `;
 
   document.getElementById("items").appendChild(div);
