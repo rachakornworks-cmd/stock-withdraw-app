@@ -177,27 +177,35 @@ function submitData(){
   let data = { requester, items: [] };
 
   for (let id of items){
-    const product = document.getElementById(`product${id}`).value;
-    const qty = Number(document.getElementById(`qty${id}`).value);
+  const product = document.getElementById(`product${id}`).value;
+  const qty = Number(document.getElementById(`qty${id}`).value);
 
-    if (!qty || qty <= 0){
-      showLoading("❗ จำนวนไม่ถูกต้อง");
+  if (!qty || qty <= 0){
+    showLoading("❗ จำนวนไม่ถูกต้อง");
+    setTimeout(hideLoading,3200);
+    return;
+  }
+
+  let users = [];
+
+  for (let i=0;i<qty;i++){
+    const user = document.getElementById(`user_${id}_${i}`).value;
+
+    if (!user){
+      showLoading("❗ ใส่ชื่อผู้ใช้ให้ครบ");
       setTimeout(hideLoading,3200);
       return;
     }
 
-    for (let i=0;i<qty;i++){
-      const user = document.getElementById(`user_${id}_${i}`).value;
-
-      if (!user){
-        showLoading("❗ ใส่ชื่อผู้ใช้ให้ครบ");
-        setTimeout(hideLoading,3200);
-        return;
-      }
-
-      data.items.push({ product, qty:1, user });
-    }
+    users.push(user);
   }
+
+  data.items.push({
+    product: product,
+    qty: qty,
+    users: users
+  });
+}
 
   showLoading("⏳ กำลังบันทึกข้อมูล...");
 
